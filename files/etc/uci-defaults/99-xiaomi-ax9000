@@ -1,0 +1,8 @@
+#!/bin/sh
+
+uci -q set network.lan.ipaddr='192.168.3.9'
+uci -q set luci.main.mediaurlbase='/luci-static/bootstrap'
+uci -q commit network
+uci -q commit luci
+
+exit 0

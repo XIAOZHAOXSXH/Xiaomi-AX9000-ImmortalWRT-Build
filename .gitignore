@@ -1,0 +1,11 @@
+/immortalwrt/
+/firmware/
+/build_dir/
+/staging_dir/
+/tmp/
+/dl/
+/feeds/
+/bin/
+/.ccache/
+.config.old
+.packageinfo
