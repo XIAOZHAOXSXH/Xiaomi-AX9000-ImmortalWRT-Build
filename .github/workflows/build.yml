@@ -11,7 +11,7 @@ on:
       - '.github/workflows/**'
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   IMMORTALWRT_REPOSITORY: https://github.com/immortalwrt/immortalwrt.git
@@ -108,3 +108,15 @@ jobs:
           path: firmware/
           if-no-files-found: error
           compression-level: 0
+
+      - name: Publish firmware release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="build-${GITHUB_RUN_NUMBER}"
+          gh release create "${tag}" firmware/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title "ImmortalWrt Xiaomi AX9000 build ${GITHUB_RUN_NUMBER}" \
+            --notes "Automated ImmortalWrt build for Xiaomi AX9000 stock layout."
