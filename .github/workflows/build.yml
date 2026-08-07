@@ -55,7 +55,19 @@ jobs:
           printf '\n' >> feeds.conf.default
           cat "${GITHUB_WORKSPACE}/feeds-extra.conf" >> feeds.conf.default
           ./scripts/feeds update -a
-          ./scripts/feeds install -a
+          # Installing every package from kiddin9 makes Kconfig parse unrelated,
+          # incompatible package definitions. Install only this image's packages
+          # and the feed-provided dependencies they require.
+          ./scripts/feeds install -p packages bash cgi-io curl dawn lua ruby unzip
+          ./scripts/feeds install -p luci \
+            luci luci-light luci-app-firewall luci-app-package-manager \
+            luci-base luci-compat luci-lua-runtime \
+            luci-lib-base luci-lib-ip luci-lib-jsonc luci-lib-nixio luci-lib-uqr \
+            luci-mod-admin-full luci-mod-network luci-mod-status luci-mod-system \
+            luci-proto-batman-adv luci-proto-ipv6 luci-proto-ppp luci-theme-bootstrap
+          ./scripts/feeds install -p routing batctl-default kmod-batman-adv
+          ./scripts/feeds install -p kiddin9 \
+            lucky luci-app-lucky luci-app-openclash luci-app-easymesh luci-app-advancedplus
           cp -a "${GITHUB_WORKSPACE}/files/." files/
           cp "${GITHUB_WORKSPACE}/.config" .config
 
@@ -64,15 +76,21 @@ jobs:
         run: |
           cd immortalwrt
           make defconfig
-          grep -qx 'CONFIG_TARGET_qualcommax_ipq807x=y' .config
-          grep -qx 'CONFIG_TARGET_DEVICE_qualcommax_ipq807x_DEVICE_xiaomi_ax9000-stock=y' .config
-          grep -qx 'CONFIG_PACKAGE_luci-app-openclash=y' .config
-          grep -qx 'CONFIG_PACKAGE_luci-app-easymesh=y' .config
-          grep -qx 'CONFIG_PACKAGE_luci-app-lucky=y' .config
-          grep -qx 'CONFIG_PACKAGE_luci-app-advancedplus=y' .config
-          grep -qx 'CONFIG_PACKAGE_luci-proto-batman-adv=y' .config
-          grep -qx 'CONFIG_PACKAGE_kmod-batman-adv=y' .config
-          grep -qx 'CONFIG_PACKAGE_wpad-mbedtls=y' .config
+          require_config() {
+            grep -qx "$1" .config || {
+              echo "Missing expected config: $1" >&2
+              exit 1
+            }
+          }
+          require_config 'CONFIG_TARGET_qualcommax_ipq807x=y'
+          require_config 'CONFIG_TARGET_DEVICE_qualcommax_ipq807x_DEVICE_xiaomi_ax9000-stock=y'
+          require_config 'CONFIG_PACKAGE_luci-app-openclash=y'
+          require_config 'CONFIG_PACKAGE_luci-app-easymesh=y'
+          require_config 'CONFIG_PACKAGE_luci-app-lucky=y'
+          require_config 'CONFIG_PACKAGE_luci-app-advancedplus=y'
+          require_config 'CONFIG_PACKAGE_luci-proto-batman-adv=y'
+          require_config 'CONFIG_PACKAGE_kmod-batman-adv=y'
+          require_config 'CONFIG_PACKAGE_wpad-mbedtls=y'
           test ! -e files/lib/firmware/ath11k/IPQ8074/hw2.0/board-2.bin
           cmp -s "${GITHUB_WORKSPACE}/驱动文件/board-2.bin" \
             files/lib/firmware/ath11k/QCN9074/hw1.0/board-2.bin
