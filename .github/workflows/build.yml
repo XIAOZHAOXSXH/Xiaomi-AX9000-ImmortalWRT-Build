@@ -7,6 +7,8 @@ on:
       - '.config'
       - 'feeds-extra.conf'
       - 'files/**'
+      - 'patches/**'
+      - 'tests/**'
       - '驱动文件/**'
       - '.github/workflows/**'
 
@@ -68,6 +70,20 @@ jobs:
           ./scripts/feeds install -p routing batctl-default kmod-batman-adv
           ./scripts/feeds install -p kiddin9 \
             lucky luci-app-lucky luci-app-openclash luci-app-easymesh luci-app-advancedplus
+          patch --forward --batch -p1 -d feeds/kiddin9/luci-app-easymesh \
+            < "${GITHUB_WORKSPACE}/patches/luci-app-easymesh-lan-bridge-loop.patch"
+          easymesh_init='feeds/kiddin9/luci-app-easymesh/root/etc/init.d/easymesh'
+          easymesh_cbi='feeds/kiddin9/luci-app-easymesh/luasrc/model/cbi/easymesh.lua'
+          easymesh_defaults='feeds/kiddin9/luci-app-easymesh/root/etc/config/easymesh'
+          test -f "$easymesh_init"
+          sh -n "$easymesh_init"
+          grep -Fq 'find_mesh_bridge' "$easymesh_init"
+          grep -Fq "bridge_loop_avoidance='1'" "$easymesh_init"
+          grep -Fq 'network.$bridge.stp=1' "$easymesh_init"
+          ! grep -Fq 'network.@device[0]' "$easymesh_init"
+          grep -Fq 'MESH LAN bridge' "$easymesh_cbi"
+          grep -Fq "option bridge_device 'br-lan'" "$easymesh_defaults"
+          sh "${GITHUB_WORKSPACE}/tests/test-easymesh-bridge.sh" "$easymesh_init"
           cp -a "${GITHUB_WORKSPACE}/files/." files/
           cp "${GITHUB_WORKSPACE}/.config" .config
 
@@ -90,7 +106,11 @@ jobs:
           require_config 'CONFIG_PACKAGE_luci-app-advancedplus=y'
           require_config 'CONFIG_PACKAGE_luci-proto-batman-adv=y'
           require_config 'CONFIG_PACKAGE_kmod-batman-adv=y'
+          require_config 'CONFIG_BATMAN_ADV_BLA=y'
           require_config 'CONFIG_PACKAGE_wpad-mbedtls=y'
+          sh -n files/etc/uci-defaults/99-xiaomi-ax9000
+          grep -Fqx "uci -q set network.lan.ipaddr='192.168.3.9/24'" \
+            files/etc/uci-defaults/99-xiaomi-ax9000
           test ! -e files/lib/firmware/ath11k/IPQ8074/hw2.0/board-2.bin
           cmp -s "${GITHUB_WORKSPACE}/驱动文件/board-2.bin" \
             files/lib/firmware/ath11k/QCN9074/hw1.0/board-2.bin

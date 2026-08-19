@@ -1,0 +1,118 @@
+diff --git a/luasrc/model/cbi/easymesh.lua b/luasrc/model/cbi/easymesh.lua
+index e6ccdb4..482cf4c 100644
+--- a/luasrc/model/cbi/easymesh.lua
++++ b/luasrc/model/cbi/easymesh.lua
+@@ -57,0 +58,12 @@ o.rmempty = false
++meshBridge = s:option(ListValue, "bridge_device", translate("MESH LAN bridge"))
++meshBridge.description = translate("Bridge that carries untagged bat0; select exactly one")
++meshBridge:value("", translate("-- Select a bridge --"))
++uci:foreach("network", "device",
++							function(device)
++								if device.type == "bridge" and device.name then
++									meshBridge:value(device.name)
++								end
++							end)
++meshBridge.default = uci:get("network", "lan", "device") or ""
++meshBridge.rmempty = false
++
+diff --git a/po/zh-cn/easymesh.po b/po/zh-cn/easymesh.po
+index d275986..ab1dbb0 100755
+--- a/po/zh-cn/easymesh.po
++++ b/po/zh-cn/easymesh.po
+@@ -48,0 +49,9 @@ msgstr "使用MESH组网的无线设备"
++msgid "MESH LAN bridge"
++msgstr "MESH LAN 桥"
++
++msgid "Bridge that carries untagged bat0; select exactly one"
++msgstr "承载无标签 bat0 的网桥；只能选择一个"
++
++msgid "-- Select a bridge --"
++msgstr "-- 选择网桥 --"
++
+diff --git a/root/etc/config/easymesh b/root/etc/config/easymesh
+index 3446d21..39f4846 100644
+--- a/root/etc/config/easymesh
++++ b/root/etc/config/easymesh
+@@ -3,0 +4 @@ config easymesh 'config'
++	option bridge_device 'br-lan'
+diff --git a/root/etc/init.d/easymesh b/root/etc/init.d/easymesh
+index b920a3c..e2846d4 100755
+--- a/root/etc/init.d/easymesh
++++ b/root/etc/init.d/easymesh
+@@ -9 +9,2 @@ load_easymesh_config() {
+-	lan=$(uci -q get network.lan.device)
++	lan_device=$(uci -q get network.lan.device)
++	mesh_bridge=$(uci -q get easymesh.config.bridge_device)
+@@ -18 +18,0 @@ load_easymesh_config() {
+-	brlan=$(uci -q get network.@device[0].name)
+@@ -21,0 +22,46 @@ load_easymesh_config() {
++find_mesh_bridge() {
++	local section
++
++	[ -n "$mesh_bridge" ] || return 1
++	for section in $(uci -q show network | sed -n 's/^network\.\([^=]*\)=device$/\1/p'); do
++		[ "$(uci -q get "network.$section.name")" = "$mesh_bridge" ] || continue
++		[ "$(uci -q get "network.$section.type")" = "bridge" ] || continue
++		printf '%s\n' "$section"
++		return 0
++	done
++	return 1
++}
++
++repair_legacy_lan_device() {
++	local original_lan_device=$lan_device
++
++	while [ "${lan_device% bat0}" != "$lan_device" ]; do
++		lan_device=${lan_device% bat0}
++	done
++	[ "$lan_device" = "$original_lan_device" ] || uci set "network.lan.device=$lan_device"
++
++	[ -n "$mesh_bridge" ] || mesh_bridge=$lan_device
++}
++
++remove_bat0_from_bridges() {
++	local section
++
++	for section in $(uci -q show network | sed -n 's/^network\.\([^=]*\)=device$/\1/p'); do
++		[ "$(uci -q get "network.$section.type")" = "bridge" ] || continue
++		uci -q del_list "network.$section.ports=bat0"
++	done
++}
++
++configure_mesh_bridge() {
++	local bridge
++
++	bridge=$(find_mesh_bridge) || {
++		echo "easymesh: bridge_device '$mesh_bridge' is not a bridge; refusing to attach bat0" >&2
++		return 1
++	}
++
++	remove_bat0_from_bridges
++	uci set "network.$bridge.stp=1"
++	uci add_list "network.$bridge.ports=bat0"
++}
++
+@@ -131,0 +178 @@ set_easymesh() {
++	repair_legacy_lan_device
+@@ -132,0 +180 @@ set_easymesh() {
++		configure_mesh_bridge || return 1
+@@ -161,6 +208,0 @@ set_easymesh() {
+-			if [ "$brlan" = "br-lan" ]; then
+-				uci add_list network.@device[0].ports='bat0'
+-			else
+-				uci set network.lan.device="${lan} bat0"
+-			fi
+-			uci commit network
+@@ -167,0 +210,2 @@ set_easymesh() {
++		uci set network.bat0.bridge_loop_avoidance='1'
++		uci commit network
+@@ -209,6 +252,0 @@ set_easymesh() {
+-			if [ "$brlan" = "br-lan" ]; then
+-				uci -q del_list network.@device[0].ports='bat0'
+-			else
+-				sed -i 's/ bat0//' /etc/config/network
+-			fi
+-			uci commit network
+@@ -215,0 +254,2 @@ set_easymesh() {
++		remove_bat0_from_bridges
++		uci commit network
