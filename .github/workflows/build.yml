@@ -67,9 +67,19 @@ jobs:
             luci-lib-base luci-lib-ip luci-lib-jsonc luci-lib-nixio luci-lib-uqr \
             luci-mod-admin-full luci-mod-network luci-mod-status luci-mod-system \
             luci-proto-batman-adv luci-proto-ipv6 luci-proto-ppp luci-theme-bootstrap
-          ./scripts/feeds install -p routing batctl-default kmod-batman-adv
-          ./scripts/feeds install -p kiddin9 \
+          # batman-adv and batctl moved from openwrt/routing to openwrt/packages.
+          ./scripts/feeds install -p ow_packages batctl-default kmod-batman-adv
+          # The current ImmortalWrt feed metadata can omit these Kiddin9 package
+          # entries after scanning unrelated packages. Link only the packages
+          # used by this image, matching the layout produced by scripts/feeds.
+          kiddin9_packages=(
             lucky luci-app-lucky luci-app-openclash luci-app-easymesh luci-app-advancedplus
+          )
+          mkdir -p package/feeds/kiddin9
+          for package in "${kiddin9_packages[@]}"; do
+            test -f "feeds/kiddin9/$package/Makefile"
+            ln -sf "../../../feeds/kiddin9/$package" "package/feeds/kiddin9/$package"
+          done
           patch --forward --batch -p1 -d feeds/kiddin9/luci-app-easymesh \
             < "${GITHUB_WORKSPACE}/patches/luci-app-easymesh-lan-bridge-loop.patch"
           easymesh_init='feeds/kiddin9/luci-app-easymesh/root/etc/init.d/easymesh'
@@ -83,6 +93,9 @@ jobs:
           ! grep -Fq 'network.@device[0]' "$easymesh_init"
           grep -Fq 'MESH LAN bridge' "$easymesh_cbi"
           grep -Fq "option bridge_device 'br-lan'" "$easymesh_defaults"
+          for package in lucky luci-app-lucky luci-app-openclash luci-app-easymesh luci-app-advancedplus; do
+            test -L "package/feeds/kiddin9/$package"
+          done
           sh "${GITHUB_WORKSPACE}/tests/test-easymesh-bridge.sh" "$easymesh_init"
           cp -a "${GITHUB_WORKSPACE}/files/." files/
           cp "${GITHUB_WORKSPACE}/.config" .config

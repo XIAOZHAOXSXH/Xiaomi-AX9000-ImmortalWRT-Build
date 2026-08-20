@@ -4,7 +4,8 @@ This repository builds the ImmortalWrt `qualcommax/ipq807x` target using the
 `xiaomi_ax9000-stock` profile. It is intended for the Xiaomi AX9000 with the
 Dark Cloud U-Boot stock partition layout.
 
-The workflow adds the `kiddin9/op-packages` feed and includes:
+The workflow adds pinned `openwrt/packages` and `kiddin9/op-packages` feeds and
+includes:
 
 - OpenClash
 - EasyMesh
@@ -14,6 +15,11 @@ The workflow adds the `kiddin9/op-packages` feed and includes:
 - `kmod-batman-adv`
 - `wpad-mbedtls`
 - Bootstrap LuCI theme
+
+The batman-adv kernel module and batctl are taken from the pinned
+`openwrt/packages` feed because upstream moved them out of `openwrt/routing`.
+Only the five Kiddin9 packages used by this image are linked into the build;
+this avoids unrelated feed metadata conflicts.
 
 The first boot LAN address is `192.168.3.9/24`. The supplied AX9000 BDF is copied
 to `ath11k/QCN9074/hw1.0/board-2.bin`, which is the 5.2 GHz radio path. The
