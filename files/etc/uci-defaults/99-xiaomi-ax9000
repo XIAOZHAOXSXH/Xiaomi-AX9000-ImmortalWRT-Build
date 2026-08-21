@@ -6,8 +6,15 @@ uci -q set luci.main.lang='zh_cn'
 uci -q set wireless.radio3.band='5g'
 uci -q set wireless.radio3.htmode='HE160'
 uci -q set wireless.radio3.channel='36'
+ftp_rule=$(uci -q add firewall rule)
+uci -q set firewall.${ftp_rule}.name='Allow-FTP-LAN'
+uci -q set firewall.${ftp_rule}.src='lan'
+uci -q set firewall.${ftp_rule}.proto='tcp'
+uci -q set firewall.${ftp_rule}.dest_port='21 50000-51000'
+uci -q set firewall.${ftp_rule}.target='ACCEPT'
 uci -q commit network
 uci -q commit luci
 uci -q commit wireless
+uci -q commit firewall
 
 exit 0

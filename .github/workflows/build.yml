@@ -150,6 +150,8 @@ jobs:
             files/etc/uci-defaults/99-xiaomi-ax9000
           grep -Fqx "uci -q set wireless.radio3.channel='36'" \
             files/etc/uci-defaults/99-xiaomi-ax9000
+          grep -Fqx "uci -q set firewall.\${ftp_rule}.dest_port='21 50000-51000'" \
+            files/etc/uci-defaults/99-xiaomi-ax9000
           test ! -e files/lib/firmware/ath11k/IPQ8074/hw2.0/board-2.bin
           cmp -s "${GITHUB_WORKSPACE}/驱动文件/board-2.bin" \
             files/lib/firmware/ath11k/QCN9074/hw1.0/board-2.bin
