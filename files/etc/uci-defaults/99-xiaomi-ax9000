@@ -2,7 +2,12 @@
 
 uci -q set network.lan.ipaddr='192.168.3.9/24'
 uci -q set luci.main.mediaurlbase='/luci-static/bootstrap'
+uci -q set luci.main.lang='zh_cn'
+uci -q set wireless.radio3.band='5g'
+uci -q set wireless.radio3.htmode='HE160'
+uci -q set wireless.radio3.channel='36'
 uci -q commit network
 uci -q commit luci
+uci -q commit wireless
 
 exit 0

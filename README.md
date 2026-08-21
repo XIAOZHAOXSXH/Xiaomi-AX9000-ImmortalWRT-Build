@@ -15,11 +15,25 @@ includes:
 - `kmod-batman-adv`
 - `wpad-mbedtls`
 - Bootstrap LuCI theme
+- FileBrowser web file manager
+- vsftpd with LuCI configuration
+- Scheduled reboot (LuCI AutoReboot)
 
 The batman-adv kernel module and batctl are taken from the pinned
 `openwrt/packages` feed because upstream moved them out of `openwrt/routing`.
-Only the five Kiddin9 packages used by this image are linked into the build;
+Only the explicitly selected Kiddin9 packages used by this image are linked into the build;
 this avoids unrelated feed metadata conflicts.
+
+The build also includes Simplified Chinese translations for the LuCI base,
+firewall, and package manager pages, and selects Chinese as the first-boot
+language. Third-party build feeds are disabled in the runtime APK repository;
+their packages are already installed in the image, so `apk update` does not
+try to download nonexistent feed indexes.
+
+FileBrowser is installed but disabled by default for security; enable it in its
+LuCI page before use. FTP is LAN-only by default and requires a local system
+account. The scheduled reboot page is under System and is disabled until a
+schedule is configured.
 
 The first boot LAN address is `192.168.3.9/24`. The supplied AX9000 BDF is copied
 to `ath11k/QCN9074/hw1.0/board-2.bin`, which is the 5.2 GHz radio path. The
@@ -57,3 +71,17 @@ uci show network | grep -E "\.stp=|\.ports='bat0'"
 
 The first two commands should report `1` or `enabled`. The final command should
 show STP enabled and exactly one bridge containing untagged `bat0`.
+
+For the QCN9074 5 GHz radio, 160 MHz is subject to the regulatory domain, DFS
+availability, channel selection, and the client capability. Check the actual
+driver state rather than only the LuCI selection:
+
+```sh
+iw phy phy1 info | grep -A2 -E '160 MHz|HE160|VHT160'
+iw dev phy1-ap0 info
+logread | grep -E 'ath11k|board|DFS|regulatory'
+```
+
+The AX9000 board file is installed at
+`/lib/firmware/ath11k/QCN9074/hw1.0/board-2.bin`; replacing a file under a
+different ath11k path does not affect this radio.

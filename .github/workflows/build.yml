@@ -74,12 +74,16 @@ jobs:
           # used by this image, matching the layout produced by scripts/feeds.
           kiddin9_packages=(
             lucky luci-app-lucky luci-app-openclash luci-app-easymesh luci-app-advancedplus
+            filebrowser luci-app-filebrowser vsftpd luci-app-vsftpd luci-app-autoreboot
           )
           mkdir -p package/feeds/kiddin9
           for package in "${kiddin9_packages[@]}"; do
             test -f "feeds/kiddin9/$package/Makefile"
             ln -sf "../../../feeds/kiddin9/$package" "package/feeds/kiddin9/$package"
           done
+          test -f feeds/luci/modules/luci-base/po/zh_Hans/base.po
+          test -f feeds/luci/applications/luci-app-firewall/po/zh_Hans/firewall.po
+          test -f feeds/luci/applications/luci-app-package-manager/po/zh_Hans/package-manager.po
           patch --forward --batch -p1 -d feeds/kiddin9/luci-app-easymesh \
             < "${GITHUB_WORKSPACE}/patches/luci-app-easymesh-lan-bridge-loop.patch"
           easymesh_init='feeds/kiddin9/luci-app-easymesh/root/etc/init.d/easymesh'
@@ -93,7 +97,7 @@ jobs:
           ! grep -Fq 'network.@device[0]' "$easymesh_init"
           grep -Fq 'MESH LAN bridge' "$easymesh_cbi"
           grep -Fq "option bridge_device 'br-lan'" "$easymesh_defaults"
-          for package in lucky luci-app-lucky luci-app-openclash luci-app-easymesh luci-app-advancedplus; do
+          for package in "${kiddin9_packages[@]}"; do
             test -L "package/feeds/kiddin9/$package"
           done
           sh "${GITHUB_WORKSPACE}/tests/test-easymesh-bridge.sh" "$easymesh_init"
@@ -113,6 +117,14 @@ jobs:
           }
           require_config 'CONFIG_TARGET_qualcommax_ipq807x=y'
           require_config 'CONFIG_TARGET_qualcommax_ipq807x_DEVICE_xiaomi_ax9000-stock=y'
+          require_config 'CONFIG_LUCI_LANG_zh_Hans=y'
+          require_config 'CONFIG_PACKAGE_luci-app-package-manager=y'
+          require_config 'CONFIG_PACKAGE_luci-i18n-base-zh-cn=y'
+          require_config 'CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y'
+          require_config 'CONFIG_PACKAGE_luci-i18n-package-manager-zh-cn=y'
+          require_config 'CONFIG_PACKAGE_luci-i18n-filebrowser-zh-cn=y'
+          require_config 'CONFIG_PACKAGE_luci-i18n-vsftpd-zh-cn=y'
+          require_config 'CONFIG_PACKAGE_luci-i18n-autoreboot-zh-cn=y'
           require_config 'CONFIG_PACKAGE_luci-app-openclash=y'
           require_config 'CONFIG_PACKAGE_luci-app-easymesh=y'
           require_config 'CONFIG_PACKAGE_luci-app-lucky=y'
@@ -121,8 +133,22 @@ jobs:
           require_config 'CONFIG_PACKAGE_kmod-batman-adv=y'
           require_config 'CONFIG_BATMAN_ADV_BLA=y'
           require_config 'CONFIG_PACKAGE_wpad-mbedtls=y'
+          require_config 'CONFIG_PACKAGE_filebrowser=y'
+          require_config 'CONFIG_PACKAGE_luci-app-filebrowser=y'
+          require_config 'CONFIG_PACKAGE_vsftpd=y'
+          require_config 'CONFIG_PACKAGE_luci-app-vsftpd=y'
+          require_config 'CONFIG_PACKAGE_luci-app-autoreboot=y'
+          require_config 'CONFIG_FEED_kiddin9=m'
+          require_config 'CONFIG_FEED_ow_packages=m'
+          require_config 'CONFIG_FEED_video=m'
           sh -n files/etc/uci-defaults/99-xiaomi-ax9000
           grep -Fqx "uci -q set network.lan.ipaddr='192.168.3.9/24'" \
+            files/etc/uci-defaults/99-xiaomi-ax9000
+          grep -Fqx "uci -q set luci.main.lang='zh_cn'" \
+            files/etc/uci-defaults/99-xiaomi-ax9000
+          grep -Fqx "uci -q set wireless.radio3.htmode='HE160'" \
+            files/etc/uci-defaults/99-xiaomi-ax9000
+          grep -Fqx "uci -q set wireless.radio3.channel='36'" \
             files/etc/uci-defaults/99-xiaomi-ax9000
           test ! -e files/lib/firmware/ath11k/IPQ8074/hw2.0/board-2.bin
           cmp -s "${GITHUB_WORKSPACE}/驱动文件/board-2.bin" \
@@ -144,6 +170,14 @@ jobs:
         shell: bash
         run: |
           cd immortalwrt
+          board_file="$(find staging_dir/target-*/root-*/lib/firmware/ath11k/QCN9074/hw1.0 \
+            -name board-2.bin -print -quit)"
+          test -n "$board_file"
+          echo '971f8e59692f711c02ea8658b34f1c3821e03bfd2f89c19cd06fd02e97c862be  '"$board_file" | sha256sum -c -
+          repositories_file="$(find staging_dir/target-*/root-*/etc/apk/repositories.d -name distfeeds.list -print -quit)"
+          test -n "$repositories_file"
+          ! grep -E '^[^#].*/(kiddin9|ow_packages|video)/packages\.adb$' "$repositories_file"
+          grep -E '^#.*packages/[^/]+/(kiddin9|ow_packages|video)/packages\.adb$' "$repositories_file"
           target_dir="bin/targets/qualcommax/ipq807x"
           test -d "${target_dir}"
           test -n "$(find "${target_dir}" -maxdepth 1 -type f -name '*xiaomi_ax9000-stock*' -print -quit)"
