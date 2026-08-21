@@ -81,6 +81,9 @@ jobs:
             test -f "feeds/kiddin9/$package/Makefile"
             ln -sf "../../../feeds/kiddin9/$package" "package/feeds/kiddin9/$package"
           done
+          patch --forward --batch -p1 -d feeds/kiddin9/filebrowser \
+            < "${GITHUB_WORKSPACE}/patches/kiddin9-filebrowser-apk-version.patch"
+          grep -Fqx 'PKG_VERSION:=1.5.2' feeds/kiddin9/filebrowser/Makefile
           test -f feeds/luci/modules/luci-base/po/zh_Hans/base.po
           test -f feeds/luci/applications/luci-app-firewall/po/zh_Hans/firewall.po
           test -f feeds/luci/applications/luci-app-package-manager/po/zh_Hans/package-manager.po
