@@ -6,3 +6,7 @@ diff --git a/Makefile b/Makefile
 -PKG_VERSION:=1.5.2-stable
 +PKG_VERSION:=1.5.2
  PKG_RELEASE=1
+@@ -37,2 +37,2 @@
+ PKG_SOURCE:=linux-$(PKG_ARCH)-filebrowser
+-PKG_SOURCE_URL:=https://github.com/gtsteffaniak/filebrowser/releases/download/v$(PKG_VERSION)
++PKG_SOURCE_URL:=https://github.com/gtsteffaniak/filebrowser/releases/download/v1.5.2-stable
