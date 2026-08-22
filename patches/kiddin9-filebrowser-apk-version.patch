@@ -1,7 +1,7 @@
 diff --git a/Makefile b/Makefile
 --- a/Makefile
 +++ b/Makefile
-@@ -9,7 +9,7 @@
+@@ -9,3 +9,3 @@
  PKG_NAME:=filebrowser
 -PKG_VERSION:=1.5.2-stable
 +PKG_VERSION:=1.5.2
